@@ -168,7 +168,7 @@ const initGraph = () => {
       new Selection({
         enabled: true,
         multiple: true,
-        rubberband: true,
+        rubberband: false, // 禁用拖动框选，避免与节点拖拽冲突
         movable: true,
         showNodeSelectionBox: false, // 禁用 X6 默认蓝色边框，改用 Vue 组件内部样式
       }),

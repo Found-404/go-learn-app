@@ -6,20 +6,22 @@
 import { onMounted, onUnmounted, ref } from "vue";
 import Matter from "matter-js";
 
-const chartletList = [
-  "http://www.questn.com/static/circles/arb.png",
-  "http://www.questn.com/static/circles/bsc.png",
-  "http://www.questn.com/static/circles/coinbase.png",
-  "http://www.questn.com/static/circles/degate.png",
-  "http://www.questn.com/static/circles/eth.png",
-  "http://www.questn.com/static/circles/onekey.png",
-  "http://www.questn.com/static/circles/sui.png",
-  "http://www.questn.com/static/circles/u1.png",
-  "http://www.questn.com/static/circles/u2.png",
-  "http://www.questn.com/static/circles/u3.png",
-  "http://www.questn.com/static/circles/usdc.png",
-];
+// 直接导入本地图片
+import img01 from '../assets/questImage/01.png';
+import img02 from '../assets/questImage/02.png';
+import img03 from '../assets/questImage/03.png';
+import img04 from '../assets/questImage/04.png';
+import img05 from '../assets/questImage/05.png';
+import img06 from '../assets/questImage/06.png';
+import img07 from '../assets/questImage/07.png';
+import img08 from '../assets/questImage/08.png';
+import img09 from '../assets/questImage/09.png';
+import img10 from '../assets/questImage/10.png';
+import img11 from '../assets/questImage/11.png';
 
+const chartletList = [
+  img01, img02, img03, img04, img05, img06, img07, img08, img09, img10, img11,
+];
 const container = ref(null);
 let engine, render, runner, mouseConstraint;
 let groundBody, leftWallBody, rightWallBody, ceilingBody; // 声明墙壁 Body 实例

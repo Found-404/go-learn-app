@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import TodoView from '../views/TodoView.vue'
 import MindMapView from '../views/MindMapView.vue'
 import PhysicsView from '../views/PhysicsView.vue'
@@ -29,7 +29,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(), // 使用 Hash 模式适配 GitHub Pages
   routes
 })
 

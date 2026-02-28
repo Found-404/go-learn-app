@@ -38,7 +38,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: frontend/docs # 修改为 docs 目录
+          path: docs # 修改为 go-learn-app/docs 目录
 
       - name: Deploy to GitHub Pages
         id: deployment

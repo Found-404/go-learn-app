@@ -23,6 +23,7 @@ const chartletList = [
 const container = ref(null);
 let engine, render, runner, mouseConstraint;
 let groundBody, leftWallBody, rightWallBody, ceilingBody; // 声明墙壁 Body 实例
+let currentWidth, currentVisibleHeight; // 用于实时跟踪容器尺寸，供安全边界检查使用
 const activeBalls = ref([]); // 用于存储当前活跃的小球实例
 
 onMounted(() => {
@@ -36,17 +37,17 @@ onMounted(() => {
   });
   const world = engine.world;
 
-  // 获取容器尺寸
-  const width = container.value.clientWidth;
-  const visibleHeight = window.innerHeight;
-  const totalHeight = visibleHeight + 800; // 顶部缓冲区高度为 800px
+  // 初始化容器尺寸
+  currentWidth = container.value.clientWidth;
+  currentVisibleHeight = window.innerHeight;
+  const totalHeight = currentVisibleHeight + 800; // 顶部缓冲区高度为 800px
 
   // 创建渲染器
   render = Render.create({
     element: container.value,
     engine: engine,
     options: {
-      width: width,
+      width: currentWidth,
       height: totalHeight,
       wireframes: false,
       background: "transparent",
@@ -67,27 +68,27 @@ onMounted(() => {
       visible: true,
       fillStyle: "#FF0000",
       strokeStyle: "#FFFFFF",
-      lineWidth: 0, // 边界墙宽度
+      lineWidth: 1, // 边界墙宽度
     },
     restitution: 1,
   };
 
   groundBody = Bodies.rectangle(
-    width / 2,
-    visibleHeight + 800 + 50,
+    currentWidth / 2,
+    currentVisibleHeight + 800 + 50,
     10000,
     100,
     wallOptions,
   );
   leftWallBody = Bodies.rectangle(-50, totalHeight / 2, 100, 10000, wallOptions);
   rightWallBody = Bodies.rectangle(
-    width + 50,
+    currentWidth + 50,
     totalHeight / 2,
     100,
     10000,
     wallOptions,
   );
-  ceilingBody = Bodies.rectangle(width / 2, 50, 10000, 100, wallOptions);
+  ceilingBody = Bodies.rectangle(currentWidth / 2, 50, 10000, 100, wallOptions);
 
   Composite.add(world, [groundBody, leftWallBody, rightWallBody, ceilingBody]);
 
@@ -112,7 +113,7 @@ onMounted(() => {
       const row = Math.floor(i / cols);
       const col = i % cols;
 
-      const startX = (width / (cols + 1)) * (col + 1);
+      const startX = (currentWidth / (cols + 1)) * (col + 1);
       const startY = 150 + row * 180; // 在顶部缓冲区垂直分层排列
 
       const ball = Bodies.circle(
@@ -145,18 +146,17 @@ onMounted(() => {
     if (!engine) return;
     
     activeBalls.value.forEach((ball) => {
-      // 如果小球完全超出了物理世界范围（考虑缓冲区）
-      // 允许它在顶部缓冲区 (-800px) 到地面 (visibleHeight) 之间活动
+      // 使用实时更新的 currentVisibleHeight 和 currentWidth
       const margin = 200;
       const isOutOfBounds = 
-        ball.position.y > visibleHeight + 800 + margin || // 掉下去了
-        ball.position.x < -margin ||                      // 飞到左边外面了
-        ball.position.x > width + margin;                 // 飞到右边外面了
+        ball.position.y > currentVisibleHeight + 800 + margin || // 掉下去了
+        ball.position.x < -margin ||                             // 飞到左边外面了
+        ball.position.x > currentWidth + margin;                // 飞到右边外面了
 
       if (isOutOfBounds) {
         // 重置位置到顶部缓冲区
         Matter.Body.setPosition(ball, {
-          x: Math.random() * (width - 100) + 50,
+          x: Math.random() * (currentWidth - 100) + 50,
           y: Math.random() * 200 + 50 // 重新出现在顶部
         });
         // 重置速度
@@ -181,28 +181,28 @@ onMounted(() => {
   // 窗口大小调整处理
   const handleResize = () => {
     if (!container.value || !engine) return; // 确保容器和引擎存在
-    const newWidth = container.value.clientWidth;
-    const newVisibleHeight = window.innerHeight; // 获取当前可见视口高度
-    const newTotalHeight = newVisibleHeight + 800; // Matter.js 世界的总高度
+    currentWidth = container.value.clientWidth;
+    currentVisibleHeight = window.innerHeight; // 更新当前可见视口高度
+    const totalHeight = currentVisibleHeight + 800; // Matter.js 世界的总高度
 
-    render.canvas.width = newWidth;
-    render.canvas.height = newTotalHeight; // Canvas 高度设置为总高度
-    render.options.width = newWidth;
-    render.options.height = newTotalHeight;
+    render.canvas.width = currentWidth;
+    render.canvas.height = totalHeight; // Canvas 高度设置为总高度
+    render.options.width = currentWidth;
+    render.options.height = totalHeight;
 
     // 只更新地面和墙壁的位置，不需要修改其尺寸 (因为初始尺寸极大)
     Matter.Body.setPosition(groundBody, {
-      x: newWidth / 2,
-      y: newVisibleHeight + 800 + 50,
+      x: currentWidth / 2,
+      y: currentVisibleHeight + 800 + 50,
     });
 
-    Matter.Body.setPosition(leftWallBody, { x: -50, y: newTotalHeight / 2 });
+    Matter.Body.setPosition(leftWallBody, { x: -50, y: totalHeight / 2 });
     Matter.Body.setPosition(rightWallBody, {
-      x: newWidth + 50,
-      y: newTotalHeight / 2,
+      x: currentWidth + 50,
+      y: totalHeight / 2,
     });
 
-    Matter.Body.setPosition(ceilingBody, { x: newWidth / 2, y: 50 });
+    Matter.Body.setPosition(ceilingBody, { x: currentWidth / 2, y: 50 });
   };
 
   window.addEventListener("resize", handleResize);

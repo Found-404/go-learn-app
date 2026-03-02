@@ -78,8 +78,7 @@ onMounted(fetchTodos)
   <div class="todo-view">
     <div class="card">
       <header>
-        <h1>Go + Vue Todo List</h1>
-        <p class="subtitle">学习 Go 语言后端实战项目</p>
+        <h1>Todo List</h1>
       </header>
 
       <div class="input-group">
@@ -118,11 +117,6 @@ onMounted(fetchTodos)
           暂无任务，开始添加吧！
         </li>
       </ul>
-
-      <footer>
-        <p>后端: Go (Gin + GORM + SQLite)</p>
-        <p>前端: Vue 3 (Vite + TS)</p>
-      </footer>
     </div>
   </div>
 </template>

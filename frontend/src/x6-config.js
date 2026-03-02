@@ -1,6 +1,6 @@
 import { Graph } from "@antv/x6";
 import { register } from "@antv/x6-vue-shape";
-import MindMapNode from "./components/MindMapNode.vue"; // 导入 MindMapNode 组件
+import MindMapNode from "./components/MindMap/MindMapNode.vue"; // 导入 MindMapNode 组件
 
 // 注册自定义 Vue 节点组件
 register({

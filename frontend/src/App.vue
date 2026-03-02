@@ -6,7 +6,7 @@ import { ListTodo, Share2, Atom } from 'lucide-vue-next'
   <div class="app-container">
     <nav class="side-nav">
       <div class="nav-header">
-        <div class="logo">GoApp</div>
+        <div class="logo">DEMO</div>
       </div>
       <router-link 
         to="/todo" 

@@ -16,6 +16,7 @@
     "@antv/x6-plugin-selection": "^2.2.2",
     "@antv/x6-plugin-transform": "^2.1.8",
     "@antv/x6-vue-shape": "^2.1.2",
+    "@vueuse/core": "^14.2.1",
     "axios": "^1.13.5",
     "lucide-vue-next": "^0.575.0",
     "matter-js": "^0.20.0",

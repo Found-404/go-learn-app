@@ -1,12 +1,9 @@
-<script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { Ref } from "vue";
 import { Graph, Node, Edge, EdgeView } from "@antv/x6";
 import { Selection } from "@antv/x6-plugin-selection";
 import { Keyboard } from "@antv/x6-plugin-keyboard";
 import { History } from "@antv/x6-plugin-history";
 import { Transform } from "@antv/x6-plugin-transform";
-
-const container = ref<HTMLDivElement | null>(null);
 let graph: Graph | null = null;
 
 // 默认连线样式
@@ -22,26 +19,23 @@ const edgeConfig = {
       },
     },
   },
-  connector: {
-    name: "normal", // 移除 rounded，使用普通连接线
-  },
+  // connector: {
+  //   name: "jumpover",
+  //   args: {
+  //     radius: 0,
+  //   },
+  // },
   router: {
     name: "manhattan",
-    args: {
-      step: 10,
-      excludeTerminals: ["source"],
-      startDirections: ["right"],
-      endDirections: ["left"],
-      padding: 10,
-    },
   },
 };
 
-const initGraph = () => {
-  if (!container.value) return;
+const initGraph = (containerRef: Ref<HTMLDivElement | null>) => {
+  if (!containerRef.value) return;
 
   graph = new Graph({
-    container: container.value,
+    container: containerRef.value,
+    autoResize: true,
     grid: true,
     mousewheel: {
       enabled: true,
@@ -49,16 +43,16 @@ const initGraph = () => {
     },
     panning: true,
     connecting: {
-      router: {
-        name: "manhattan",
-        args: {
-          step: 10,
-          excludeTerminals: ["source"],
-          startDirections: ["right"],
-          endDirections: ["left"],
-          padding: 10,
-        },
-      },
+      // router: {
+      //   name: "manhattan",
+      //   args: {
+      //     step: 10,
+      //     excludeTerminals: ["source"],
+      //     startDirections: ["right"],
+      //     endDirections: ["left"],
+      //     padding: 10,
+      //   },
+      // },
       allowBlank: false,
       allowLoop: false,
       highlight: true,
@@ -145,7 +139,7 @@ const initGraph = () => {
 
   // 双击节点修改内容
   graph.on("node:dblclick", ({ node }) => {
-    const oldLabel = node.getData()?.label || (node.label as string);
+    const oldLabel = node.getData()?.label || "";
     const label = prompt("修改节点内容:", oldLabel);
     if (label !== null) {
       node.setData({ label }); // 更新数据，Vue 组件会自动感应
@@ -235,13 +229,19 @@ const initGraph = () => {
     currentTargetNode = null;
   };
 
-  // 拖拽过程中：实时预览功能 (Ghost Node)
+  // 拖拽过程中
   graph.on("node:moving", ({ node }) => {
     // BUG 修复：如果节点已经有了父节点（即已经有了入边），则不再触发创建虚拟预览
     const incomingEdges = graph?.getIncomingEdges(node);
     if (incomingEdges && incomingEdges.length > 0) {
       return;
     }
+
+    // 拖拽过程中遍历所有边，更新它们的路径
+    graph?.getEdges().forEach((edge) => {
+      const edgeView = graph?.findViewByCell(edge) as EdgeView;
+      edgeView.update();
+    });
 
     const nodes = graph?.getNodes() || [];
     const nodeBBox = node.getBBox();
@@ -282,10 +282,11 @@ const initGraph = () => {
         }
       }
     });
-
     // 如果在吸附范围内
     if (closestNode) {
       const target = closestNode as Node;
+      // 如果是隐藏节点则不进行下面逻辑
+      if (!target.visible) return;
       const { x: previewX, y: previewY } = getSafePosition(
         target,
         node,
@@ -303,7 +304,7 @@ const initGraph = () => {
             shape: "ghost-node",
             x: previewX,
             y: previewY,
-            label: node.getData()?.label || (node.label as string),
+            label: node.getData()?.label || "",
             zIndex: -1, // 置于底层
           }) || null;
 
@@ -361,6 +362,13 @@ const initGraph = () => {
         target: { cell: node.id, port: "port-left" },
       });
 
+      // ==============================
+      // 此处调用接口,创建节点; 父节点为改节点
+      console.log(
+        `👉拖拽修改节点: 父节点: ${currentTargetNode.data.label}; 当前节点: ${node.data.label}`,
+      );
+      // ==============================
+
       // 建立连接后，手动触发一次叶子节点状态更新
       updateLeafStatus();
     }
@@ -399,7 +407,7 @@ const initGraph = () => {
 
     const NODE_WIDTH = 160;
     const NODE_HEIGHT = 60;
-    const HORIZONTAL_GAP = 100; // 增加间距
+    const HORIZONTAL_GAP = 100;
     const VERTICAL_GAP = 20;
 
     // 递归计算每个子树的总高度
@@ -416,7 +424,6 @@ const initGraph = () => {
       );
 
       const gapsHeight = (nodeData.children.length - 1) * VERTICAL_GAP;
-      // 子树高度是所有子节点高度之和加上间距，但不能小于节点自身高度
       return Math.max(NODE_HEIGHT, childrenHeight + gapsHeight);
     };
 
@@ -427,7 +434,6 @@ const initGraph = () => {
       y: number,
       parentId: string | null = null,
     ) => {
-      // 添加当前节点
       graph?.addNode({
         id: nodeData.id,
         shape: "mindmap-vue-node",
@@ -439,7 +445,6 @@ const initGraph = () => {
         },
       });
 
-      // 如果有父节点，建立连线
       if (parentId) {
         graph?.addEdge({
           ...edgeConfig,
@@ -448,11 +453,8 @@ const initGraph = () => {
         });
       }
 
-      // 处理子节点
       if (nodeData.children && nodeData.children.length > 0) {
         const childX = x + NODE_WIDTH + HORIZONTAL_GAP;
-
-        // 计算所有子树的总高度
         const totalChildrenHeight = nodeData.children.reduce(
           (acc: number, child: any, index: number) => {
             return (
@@ -464,53 +466,80 @@ const initGraph = () => {
           0,
         );
 
-        // 起始 Y 坐标：父节点中心点减去子树总高度的一半
         let currentY = y + NODE_HEIGHT / 2 - totalChildrenHeight / 2;
-
         nodeData.children.forEach((child: any) => {
           const childSubtreeHeight = calculateSubtreeHeight(child);
-          // 子节点的 Y 坐标应该是其分配空间的中心
           const childY = currentY + childSubtreeHeight / 2 - NODE_HEIGHT / 2;
-
           renderNode(child, childX, childY, nodeData.id);
           currentY += childSubtreeHeight + VERTICAL_GAP;
         });
       }
     };
 
-    // 执行初始渲染
-    renderNode(data, startX, startY);
+    // 如果是数组，则循环渲染（支持多根节点）
+    if (Array.isArray(data)) {
+      let currentY = startY;
+      data.forEach((item) => {
+        const subtreeHeight = calculateSubtreeHeight(item);
+        renderNode(
+          item,
+          startX,
+          currentY + subtreeHeight / 2 - NODE_HEIGHT / 2,
+        );
+        currentY += subtreeHeight + 100; // 根节点之间保持较大间距
+      });
+    } else {
+      renderNode(data, startX, startY);
+    }
 
-    // 初始触发一次状态更新
     updateLeafStatus();
   };
 
   // 模拟后端返回的树形结构数据
-  const mockBackendData = {
-    id: "root",
-    label: "Go 学习路线",
-    children: [
-      {
-        id: "syntax",
-        label: "基础语法",
-        children: [
-          { id: "var", label: "变量与常量" },
-          { id: "flow", label: "控制流" },
-        ],
-      },
-      {
-        id: "advanced",
-        label: "高级特性",
-        children: [
-          { id: "interface", label: "接口 (Interface)" },
-          { id: "concurrency", label: "并发模型 (Goroutine)" },
-        ],
-      },
-    ],
-  };
+  const mockBackendData = [
+    {
+      id: "root",
+      label: "Go 学习路线",
+      children: [
+        {
+          id: "syntax",
+          label: "基础语法",
+          children: [
+            {
+              id: "var",
+              label: "变量与常量",
+              children: [{ id: "test", label: "test" }],
+            },
+            { id: "flow", label: "控制流" },
+          ],
+        },
+        {
+          id: "advanced",
+          label: "高级特性",
+          children: [
+            { id: "interface", label: "接口 (Interface)" },
+            { id: "concurrency", label: "并发模型 (Goroutine)" },
+          ],
+        },
+      ],
+    },
+    {
+      id: "syntax2",
+      label: "基础语法2",
+      children: [
+        { id: "var2", label: "变量与常量2" },
+        { id: "flow2", label: "控制流2" },
+      ],
+    },
+  ];
 
   // 调用抽离的方法加载初始数据
   loadTreeData(mockBackendData, 100, 250);
+
+  // 居中显示内容
+  setTimeout(() => {
+    graph?.centerContent();
+  }, 100);
 
   // 监听连线和删除事件
   graph.on("edge:connected", updateLeafStatus);
@@ -553,6 +582,13 @@ const initGraph = () => {
           target: { cell: newNode.id, port: "port-left" },
         });
 
+        // ==============================
+        // 此处调用接口,创建节点; 父节点为改节点
+        console.log(
+          `👉创建节点: 父节点: ${parent.data.label}; 当前节点: ${newNode.data.label}`,
+        );
+        // ==============================
+
         // 更新所有节点状态
         updateLeafStatus();
       }
@@ -593,55 +629,4 @@ const initGraph = () => {
   });
 };
 
-onMounted(() => {
-  initGraph();
-});
-
-onUnmounted(() => {
-  graph?.dispose();
-});
-</script>
-
-<template>
-  <div class="mindmap-wrapper">
-    <div class="toolbar">
-      <div class="tip">
-        提示: 双击空白处创建，拖拽靠近自动吸附，Ctrl+滚轮缩放
-      </div>
-    </div>
-    <div ref="container" class="graph-container"></div>
-  </div>
-</template>
-
-<style scoped>
-.mindmap-wrapper {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: #f8fafc;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-}
-
-.toolbar {
-  padding: 12px 20px;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-}
-
-.tip {
-  font-size: 13px;
-  color: #64748b;
-}
-
-.graph-container {
-  flex: 1;
-  width: 100%;
-  height: 100%;
-  outline: none;
-}
-</style>
+export { graph, initGraph };

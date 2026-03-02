@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import MindMap from '../components/MindMap.vue'
+import MindMap from "../components/MindMap/MindMap.vue";
 </script>
 
 <template>

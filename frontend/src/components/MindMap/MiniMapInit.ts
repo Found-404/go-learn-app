@@ -4,6 +4,7 @@ import { Selection } from "@antv/x6-plugin-selection";
 import { Keyboard } from "@antv/x6-plugin-keyboard";
 import { History } from "@antv/x6-plugin-history";
 import { Transform } from "@antv/x6-plugin-transform";
+import { MiniMap } from "@antv/x6-plugin-minimap";
 let graph: Graph | null = null;
 
 // 默认连线样式
@@ -30,7 +31,10 @@ const edgeConfig = {
   },
 };
 
-const initGraph = (containerRef: Ref<HTMLDivElement | null>) => {
+const initGraph = (
+  containerRef: Ref<HTMLDivElement | null>,
+  miniMapContainerRef: Ref<HTMLDivElement | null>,
+) => {
   if (!containerRef.value) return;
 
   graph = new Graph({
@@ -106,6 +110,14 @@ const initGraph = (containerRef: Ref<HTMLDivElement | null>) => {
       new Transform({
         // enabled: true,
       }),
+    )
+    .use(
+      new MiniMap({
+        container: miniMapContainerRef.value as HTMLElement,
+        width: 158,
+        height: 210,
+        padding: 10,
+      }),
     );
 
   // 将 graph 实例挂载到 window 上，方便 Vue 节点组件直接调用（最可靠的通信方式）
@@ -121,31 +133,18 @@ const initGraph = (containerRef: Ref<HTMLDivElement | null>) => {
 
   // 双击空白处创建节点
   graph.on("blank:dblclick", ({ x, y }) => {
-    const label = prompt("输入节点内容:", "新节点");
-    if (label) {
-      graph?.addNode({
-        shape: "mindmap-vue-node",
-        x: x - 60,
-        y: y - 20,
-        data: {
-          label,
-          isLeaf: true, // 新节点默认是末尾节点
-        },
-      });
-      // 手动触发状态更新
-      updateLeafStatus();
-    }
+    graph?.addNode({
+      shape: "mindmap-vue-node",
+      x: x - 80, // 减去宽度的一半
+      y: y - 30, // 减去高度的一半
+      data: {
+        label: "",
+        isLeaf: true,
+        isNew: true,
+        isEditing: true,
+      },
+    });
   });
-
-  // 双击节点修改内容
-  graph.on("node:dblclick", ({ node }) => {
-    const oldLabel = node.getData()?.label || "";
-    const label = prompt("修改节点内容:", oldLabel);
-    if (label !== null) {
-      node.setData({ label }); // 更新数据，Vue 组件会自动感应
-    }
-  });
-
   // 临时预览变量
   let ghostNode: Node | null = null;
   let ghostEdge: Edge | null = null;
@@ -550,46 +549,36 @@ const initGraph = (containerRef: Ref<HTMLDivElement | null>) => {
   // 监听来自 Vue 组件节点的自定义事件：添加子节点
   graph.on(
     "node:add:child",
-    ({ parentId, label }: { parentId: string; label: string }) => {
+    ({ parentId }: { parentId: string }) => {
       const parent = graph?.getCellById(parentId) as Node;
 
       if (!parent) return;
 
-      // 自动计算新节点位置（使用 getSafePosition 自动避让）
-      // 传入 parent.getBBox().y 作为建议位置，避让算法会处理重叠
       const { x, y } = getSafePosition(
         parent,
         { id: "temp-id" },
         parent.getBBox().y,
       );
 
-      // 创建新节点
       const newNode = graph?.addNode({
         shape: "mindmap-vue-node",
         x,
         y,
         data: {
-          label,
+          label: "",
           isLeaf: true,
+          isNew: true,
+          isEditing: true,
         },
       });
 
       if (newNode) {
-        // 创建连线
         graph?.addEdge({
           ...edgeConfig,
           source: { cell: parent.id, port: "port-right" },
           target: { cell: newNode.id, port: "port-left" },
         });
 
-        // ==============================
-        // 此处调用接口,创建节点; 父节点为改节点
-        console.log(
-          `👉创建节点: 父节点: ${parent.data.label}; 当前节点: ${newNode.data.label}`,
-        );
-        // ==============================
-
-        // 更新所有节点状态
         updateLeafStatus();
       }
     },

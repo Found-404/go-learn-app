@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import TodoView from '../views/TodoView.vue'
 import MindMapView from '../views/MindMapView.vue'
 import PhysicsView from '../views/PhysicsView.vue'
+import EditorView from '../views/EditorView.vue'
 
 const routes = [
   {
@@ -25,6 +26,12 @@ const routes = [
     name: 'physics',
     component: PhysicsView,
     meta: { title: '物理实验室' }
+  },
+  {
+    path: '/editor',
+    name: 'editor',
+    component: EditorView,
+    meta: { title: '富文本编辑器' }
   }
 ]
 

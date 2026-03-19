@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ListTodo, Share2, Atom } from 'lucide-vue-next'
+import { ListTodo, Share2, Atom, FileText } from 'lucide-vue-next'
 </script>
 
 <template>
@@ -23,6 +23,14 @@ import { ListTodo, Share2, Atom } from 'lucide-vue-next'
       >
         <Share2 :size="20" />
         <span>思维导图</span>
+      </router-link>
+      <router-link 
+        to="/editor" 
+        class="nav-item" 
+        active-class="active"
+      >
+        <FileText :size="20" />
+        <span>富文本编辑器</span>
       </router-link>
       <router-link 
         to="/physics" 
